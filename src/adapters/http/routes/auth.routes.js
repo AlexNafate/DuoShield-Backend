@@ -47,14 +47,17 @@ router.post('/register', async (req, res) => {
       'Todos los campos son obligatorios',
       'El correo electrónico no es válido',
       'El nombre debe tener entre 2 y 100 caracteres',
-      'La contraseña debe tener entre 12 y 72 caracteres',
+      'La contraseña debe tener entre 6 y 8 caracteres',
     ];
 
     if (erroresValidacion.includes(error.message)) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({
+        error: error.message,
+      });
     }
 
     console.error('Error al registrar usuario:', error);
+
     return res.status(500).json({
       error: 'No se pudo registrar el usuario',
     });
@@ -64,6 +67,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', loginLimiter, async (req, res) => {
   try {
     const result = await loginUser.execute(req.body);
+
     return res.status(200).json(result);
   } catch (error) {
     if (
@@ -76,10 +80,13 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 
     if (error.message.includes('obligatorios')) {
-      return res.status(400).json({ error: error.message });
+      return res.status(400).json({
+        error: error.message,
+      });
     }
 
     console.error('Error al iniciar sesión:', error);
+
     return res.status(500).json({
       error: 'No se pudo iniciar sesión',
     });

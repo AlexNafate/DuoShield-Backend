@@ -25,8 +25,8 @@ class RegisterUser {
             throw new Error('El correo electrónico no es válido');
         }
 
-        if (password.length < 12 || password.length > 72) {
-            throw new Error('La contraseña debe tener entre 12 y 72 caracteres');
+        if (password.length < 6 || password.length > 8) {
+            throw new Error('La contraseña debe tener entre 6 y 8 caracteres');
         }
 
         const existingUser = await this.userRepository.findByEmail(email);
