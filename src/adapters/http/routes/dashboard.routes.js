@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const authenticateToken = require('../middleware/auth.middleware');
 const MySQLUserRepository = require('../../database/mysql-user.repository');
-const fs = require('fs');
-const path = require('path');
 
 const userRepository = new MySQLUserRepository();
 
@@ -66,74 +64,12 @@ router.get('/stats', authenticateToken, async (req, res) => {
   }
 });
 
-// Endpoint público de prueba para demostrar fallo de autenticación en el reporte
+// Endpoint pblico de prueba para demostrar fallo de autenticacin en el reporte
 router.get('/public-check', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'Endpoint público accesible sin autenticación',
+    message: 'Endpoint pblico accesible sin autenticacin',
   });
-});
-
-// ── IDS Alerts: lee las últimas alertas de Suricata (fast.log) ──────────────
-// Protegido con JWT - solo usuarios autenticados pueden ver las alertas IDS
-router.get('/ids-alerts', authenticateToken, (req, res) => {
-  const LOG_PATH = '/var/log/suricata/fast.log';
-  const MAX_LINES = 50;
-
-  try {
-    if (!fs.existsSync(LOG_PATH)) {
-      return res.status(200).json({
-        success: true,
-        source: 'suricata-backend',
-        alerts: [],
-        message: 'Log de Suricata no encontrado en este servidor.',
-      });
-    }
-
-    // Leer las últimas líneas del log
-    const content = fs.readFileSync(LOG_PATH, 'utf8');
-    const lines = content.split('\n').filter(l => l.trim() !== '');
-    const lastLines = lines.slice(-MAX_LINES).reverse();
-
-    // Parsear cada línea del fast.log de Suricata
-    // Formato: MM/DD/YYYY-HH:MM:SS.us  [**] [gid:sid:rev] msg [**] [Classification: ...] [Priority: N] {PROTO} src -> dst
-    const alerts = lastLines.map((line, idx) => {
-      const tsMatch   = line.match(/^(\d{2}\/\d{2}\/\d{4}-\d{2}:\d{2}:\d{2}\.\d+)/);
-      const msgMatch  = line.match(/\[\*\*\]\s+\[\d+:\d+:\d+\]\s+(.+?)\s+\[\*\*\]/);
-      const prioMatch = line.match(/\[Priority:\s*(\d+)\]/);
-      const protoMatch= line.match(/\{(\w+)\}/);
-      const ipMatch   = line.match(/\}\s+([\d\.]+)(?::\d+)?\s+->\s+([\d\.]+)/);
-
-      const severity = prioMatch
-        ? (prioMatch[1] === '1' ? 'CRÍTICO' : prioMatch[1] === '2' ? 'ALTO' : 'MEDIO')
-        : 'INFO';
-
-      return {
-        id: idx,
-        timestamp: tsMatch ? tsMatch[1] : 'Desconocido',
-        message: msgMatch ? msgMatch[1].trim() : line.substring(0, 80),
-        severity,
-        protocol: protoMatch ? protoMatch[1] : 'UNKNOWN',
-        srcIp: ipMatch ? ipMatch[1] : '?',
-        dstIp: ipMatch ? ipMatch[2] : '?',
-        raw: line,
-      };
-    });
-
-    return res.status(200).json({
-      success: true,
-      source: 'suricata-backend',
-      total: alerts.length,
-      timestamp: new Date().toISOString(),
-      alerts,
-    });
-  } catch (err) {
-    console.error('Error al leer log de Suricata:', err.message);
-    return res.status(500).json({
-      success: false,
-      error: 'No se pudo leer el log de Suricata.',
-    });
-  }
 });
 
 module.exports = router;
